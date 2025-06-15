@@ -1,79 +1,701 @@
-#!/usr/bin/env python3
-"""
-Launch script for Mycorrhizal Image Annotator
-"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬 Mycorrhizal Structure Annotator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-import os
-import sys
-import subprocess
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-def install_dependencies():
-    """Install required packages"""
-    print("📦 Installing annotation tool dependencies...")
-    
-    packages = [
-        "streamlit>=1.25.0",
-        "pillow>=9.0.0", 
-        "pandas>=1.5.0",
-        "numpy>=1.21.0",
-        "opencv-python-headless>=4.6.0",
-        "streamlit-drawable-canvas>=0.9.0"
-    ]
-    
-    for package in packages:
-        try:
-            subprocess.run([sys.executable, "-m", "pip", "install", package], 
-                          check=True, capture_output=True)
-            print(f"   ✅ {package.split('>=')[0]}")
-        except subprocess.CalledProcessError:
-            print(f"   ⚠️ Failed to install {package.split('>=')[0]}")
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
-def create_directories():
-    """Create necessary directories"""
-    print("📁 Setting up annotation workspace...")
-    
-    directories = [
-        "uploaded_images",
-        "annotations/masks",
-        "annotations/metadata", 
-        "export"
-    ]
-    
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
-        print(f"   ✅ {directory}")
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
 
-def launch_annotator():
-    """Launch the annotation website"""
-    print("\n🚀 Launching Mycorrhizal Image Annotator...")
-    print("🔬 Professional annotation tool for microscopy images")
-    print("📱 Access the tool at the forwarded port 8501")
-    
-    try:
-        subprocess.run([
-            "streamlit", "run", "mycorrhizal_annotator.py",
-            "--server.port=8501",
-            "--server.address=0.0.0.0",
-            "--browser.gatherUsageStats=false"
-        ])
-    except KeyboardInterrupt:
-        print("\n👋 Annotation tool stopped")
-    except FileNotFoundError:
-        print("❌ Streamlit not found. Install with: pip install streamlit")
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
 
-def main():
-    """Main execution"""
-    print("🔬 MYCORRHIZAL IMAGE ANNOTATOR")
-    print("=" * 40)
-    print("Professional annotation tool for AI training")
-    print("=" * 40)
-    
-    # Setup
-    install_dependencies()
-    create_directories()
-    
-    # Launch
-    launch_annotator()
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
 
-if __name__ == "__main__":
-    main()
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            min-height: 80vh;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 2px solid #e9ecef;
+        }
+
+        .canvas-area {
+            padding: 30px;
+            position: relative;
+        }
+
+        .structure-tools {
+            margin-bottom: 30px;
+        }
+
+        .structure-tools h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .color-tool {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .color-tool:hover {
+            background: rgba(76, 175, 80, 0.1);
+            transform: translateX(5px);
+        }
+
+        .color-tool.active {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.15);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .color-preview {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .structure-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .brush-controls {
+            margin-bottom: 30px;
+        }
+
+        .brush-controls h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .brush-size-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .brush-size-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4CAF50;
+            cursor: pointer;
+        }
+
+        .brush-size-value {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #2196F3, #1976D2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .clear-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .download-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .canvas-container {
+            position: relative;
+            max-width: 100%;
+            max-height: 70vh;
+            overflow: auto;
+            border: 3px solid #e9ecef;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .annotation-canvas {
+            cursor: crosshair;
+            display: block;
+            max-width: 100%;
+        }
+
+        .info-panel {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-panel h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .info-panel ul {
+            list-style: none;
+            color: #333;
+        }
+
+        .info-panel li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .info-panel li:before {
+            content: "•";
+            color: #1976d2;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px 30px;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-text {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .coordinates {
+            font-family: monospace;
+            color: #4CAF50;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+                border-right: none;
+                border-top: 2px solid #e9ecef;
+            }
+        }
+
+        .legend {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            max-width: 200px;
+        }
+
+        .legend h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            margin-right: 8px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Mycorrhizal Structure Annotator</h1>
+            <p>Create precise color-coded masks for AI training</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="upload-section">
+                    <input type="file" id="imageInput" class="file-input" accept="image/*">
+                    <button class="upload-btn" onclick="document.getElementById('imageInput').click()">
+                        📤 Upload Microscope Image
+                    </button>
+                </div>
+
+                <div class="info-panel">
+                    <h4>📋 Instructions</h4>
+                    <ul>
+                        <li>Upload a clear microscope image</li>
+                        <li>Select structure type from tools</li>
+                        <li>Draw directly on the image</li>
+                        <li>Use different colors for each structure</li>
+                        <li>Download mask for AI training</li>
+                    </ul>
+                </div>
+
+                <div class="structure-tools">
+                    <h3>🎨 Structure Tools</h3>
+                    <div class="color-tool active" data-color="#000000" data-structure="background">
+                        <div class="color-preview" style="background: #000000;"></div>
+                        <div class="structure-name">Background</div>
+                    </div>
+                    <div class="color-tool" data-color="#FF0000" data-structure="arbuscules">
+                        <div class="color-preview" style="background: #FF0000;"></div>
+                        <div class="structure-name">Arbuscules</div>
+                    </div>
+                    <div class="color-tool" data-color="#00FF00" data-structure="vesicles">
+                        <div class="color-preview" style="background: #00FF00;"></div>
+                        <div class="structure-name">Vesicles</div>
+                    </div>
+                    <div class="color-tool" data-color="#0000FF" data-structure="hyphae">
+                        <div class="color-preview" style="background: #0000FF;"></div>
+                        <div class="structure-name">Hyphae</div>
+                    </div>
+                    <div class="color-tool" data-color="#FFFF00" data-structure="spores">
+                        <div class="color-preview" style="background: #FFFF00;"></div>
+                        <div class="structure-name">Spores</div>
+                    </div>
+                    <div class="color-tool" data-color="#FF00FF" data-structure="entry_points">
+                        <div class="color-preview" style="background: #FF00FF;"></div>
+                        <div class="structure-name">Entry Points</div>
+                    </div>
+                    <div class="color-tool" data-color="#808080" data-structure="root_tissue">
+                        <div class="color-preview" style="background: #808080;"></div>
+                        <div class="structure-name">Root Tissue</div>
+                    </div>
+                </div>
+
+                <div class="brush-controls">
+                    <h4>🖌️ Brush Size</h4>
+                    <input type="range" id="brushSize" class="brush-size-slider" min="1" max="50" value="10">
+                    <div class="brush-size-value" id="brushSizeValue">10px</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn clear-btn" onclick="clearCanvas()">
+                        🗑️ Clear Annotations
+                    </button>
+                    <button class="action-btn download-btn" id="downloadBtn" onclick="downloadMask()" disabled>
+                        💾 Download Mask
+                    </button>
+                    <button class="action-btn download-btn" id="downloadPairBtn" onclick="downloadPair()" disabled>
+                        📦 Download Pair
+                    </button>
+                </div>
+            </div>
+
+            <div class="canvas-area">
+                <div class="canvas-container" id="canvasContainer">
+                    <div style="text-align: center; padding: 50px; color: #666;">
+                        Upload an image to start annotating
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-text" id="statusText">Ready to annotate</div>
+            <div class="coordinates" id="coordinates">Position: (0, 0)</div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <h4>🏷️ Color Legend</h4>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #000000;"></div>
+            <span>Background</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF0000;"></div>
+            <span>Arbuscules</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00FF00;"></div>
+            <span>Vesicles</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #0000FF;"></div>
+            <span>Hyphae</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FFFF00;"></div>
+            <span>Spores</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #FF00FF;"></div>
+            <span>Entry Points</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #808080;"></div>
+            <span>Root Tissue</span>
+        </div>
+    </div>
+
+    <script>
+        let canvas, ctx, originalImage;
+        let isDrawing = false;
+        let currentColor = '#000000';
+        let currentStructure = 'background';
+        let brushSize = 10;
+        let originalImageName = '';
+
+        // Structure color mapping (matches your AI system)
+        const STRUCTURE_COLORS = {
+            "background": "#000000",
+            "arbuscules": "#FF0000", 
+            "vesicles": "#00FF00",
+            "hyphae": "#0000FF",
+            "spores": "#FFFF00",
+            "entry_points": "#FF00FF",
+            "root_tissue": "#808080"
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            updateBrushSize();
+        });
+
+        function setupEventListeners() {
+            // Image upload
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+
+            // Structure tool selection
+            document.querySelectorAll('.color-tool').forEach(tool => {
+                tool.addEventListener('click', function() {
+                    selectStructureTool(this);
+                });
+            });
+
+            // Brush size control
+            const brushSlider = document.getElementById('brushSize');
+            brushSlider.addEventListener('input', updateBrushSize);
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            originalImageName = file.name.split('.')[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    setupCanvas(img);
+                    document.getElementById('statusText').textContent = `Image loaded: ${file.name}`;
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('downloadPairBtn').disabled = false;
+                };
+                img.src = e.target.result;
+                originalImage = img;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function setupCanvas(img) {
+            const container = document.getElementById('canvasContainer');
+            container.innerHTML = '';
+
+            // Create canvas
+            canvas = document.createElement('canvas');
+            canvas.className = 'annotation-canvas';
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false; // Prevent anti-aliasing for exact colors
+
+            // Draw original image as background reference (optional)
+            // ctx.globalAlpha = 0.7;
+            // ctx.drawImage(img, 0, 0);
+            // ctx.globalAlpha = 1.0;
+
+            // Fill with black background (default)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            container.appendChild(canvas);
+
+            // Add canvas event listeners
+            setupCanvasListeners();
+        }
+
+        function setupCanvasListeners() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('mousemove', updateCoordinates);
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = currentColor;
+            ctx.beginPath();
+            ctx.arc(x, y, brushSize, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 
+                                            e.type === 'touchmove' ? 'mousemove' : 'mouseup', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        }
+
+        function updateCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const x = Math.round((e.clientX - rect.left) * scaleX);
+            const y = Math.round((e.clientY - rect.top) * scaleY);
+            
+            document.getElementById('coordinates').textContent = `Position: (${x}, ${y})`;
+        }
+
+        function selectStructureTool(toolElement) {
+            // Remove active class from all tools
+            document.querySelectorAll('.color-tool').forEach(tool => {
+                tool.classList.remove('active');
+            });
+
+            // Add active class to selected tool
+            toolElement.classList.add('active');
+
+            // Update current color and structure
+            currentColor = toolElement.dataset.color;
+            currentStructure = toolElement.dataset.structure;
+
+            document.getElementById('statusText').textContent = 
+                `Selected: ${currentStructure.replace('_', ' ')} (${currentColor})`;
+        }
+
+        function updateBrushSize() {
+            brushSize = parseInt(document.getElementById('brushSize').value);
+            document.getElementById('brushSizeValue').textContent = `${brushSize}px`;
+        }
+
+        function clearCanvas() {
+            if (!canvas) return;
+            
+            if (confirm('Are you sure you want to clear all annotations?')) {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                document.getElementById('statusText').textContent = 'Canvas cleared';
+            }
+        }
+
+        function downloadMask() {
+            if (!canvas) return;
+
+            const link = document.createElement('a');
+            link.download = `${originalImageName}_mask.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            document.getElementById('statusText').textContent = 'Mask downloaded successfully!';
+        }
+
+        function downloadPair() {
+            if (!canvas || !originalImage) return;
+
+            // Create a zip-like download by triggering both downloads
+            downloadMask();
+            
+            // Download original image
+            setTimeout(() => {
+                const originalCanvas = document.createElement('canvas');
+                const originalCtx = originalCanvas.getContext('2d');
+                originalCanvas.width = originalImage.width;
+                originalCanvas.height = originalImage.height;
+                originalCtx.drawImage(originalImage, 0, 0);
+                
+                const link = document.createElement('a');
+                link.download = `${originalImageName}_original.jpg`;
+                link.href = originalCanvas.toDataURL('image/jpeg', 0.95);
+                link.click();
+
+                document.getElementById('statusText').textContent = 'Image pair downloaded successfully!';
+            }, 500);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'z':
+                        e.preventDefault();
+                        // Could implement undo functionality here
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        downloadMask();
+                        break;
+                }
+            }
+
+            // Number keys for quick structure selection
+            const structureKeys = {
+                '1': 'background',
+                '2': 'arbuscules', 
+                '3': 'vesicles',
+                '4': 'hyphae',
+                '5': 'spores',
+                '6': 'entry_points',
+                '7': 'root_tissue'
+            };
+
+            if (structureKeys[e.key]) {
+                const tool = document.querySelector(`[data-structure="${structureKeys[e.key]}"]`);
+                if (tool) selectStructureTool(tool);
+            }
+        });
+    </script>
+</body>
+</html>
