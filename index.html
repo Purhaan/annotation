@@ -256,12 +256,18 @@
             border: 3px solid #e9ecef;
             border-radius: 10px;
             background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .annotation-canvas {
             cursor: crosshair;
             display: block;
             max-width: 100%;
+            max-height: 65vh;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .info-panel {
@@ -369,10 +375,13 @@
         <div class="main-content">
             <div class="sidebar">
                 <div class="upload-section">
-                    <input type="file" id="imageInput" class="file-input" accept="image/*">
+                    <input type="file" id="imageInput" class="file-input" accept="image/jpeg,image/jpg,image/png,image/tiff,image/tif">
                     <button class="upload-btn" onclick="document.getElementById('imageInput').click()">
                         📤 Upload Microscope Image
                     </button>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 8px; text-align: center;">
+                        Supports: JPG, PNG, TIFF • Max size: 10MB
+                    </div>
                 </div>
 
                 <div class="info-panel">
@@ -452,7 +461,14 @@
             <div class="canvas-area">
                 <div class="canvas-container" id="canvasContainer">
                     <div style="text-align: center; padding: 50px; color: #666;">
-                        Upload an image to start annotating
+                        <h3>📤 Upload an Image to Start</h3>
+                        <p>Supports JPG, PNG, and TIFF formats</p>
+                        <p style="font-size: 0.9em; margin-top: 20px;">
+                            🎯 <strong>Tips:</strong><br>
+                            • Use high-resolution microscope images<br>
+                            • Ensure good contrast for better annotation<br>
+                            • Images will be converted to PNG for AI training
+                        </p>
                     </div>
                 </div>
             </div>
@@ -520,6 +536,12 @@
         document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             updateBrushSize();
+            
+            // Initialize view mode buttons
+            document.getElementById('imageViewBtn').classList.add('active');
+            
+            // Debug logging
+            console.log('Mycorrhizal Annotator initialized');
         });
 
         function setupEventListeners() {
@@ -542,19 +564,35 @@
             const file = event.target.files[0];
             if (!file) return;
 
+            // Check file type
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/tiff', 'image/tif'];
+            if (!validTypes.includes(file.type.toLowerCase())) {
+                alert('Please upload a valid image file (JPG, PNG, TIFF)');
+                return;
+            }
+
             originalImageName = file.name.split('.')[0];
             const reader = new FileReader();
             
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
+                    // Ensure image is properly loaded
+                    console.log(`Image loaded: ${img.width}x${img.height}`);
                     setupCanvas(img);
-                    document.getElementById('statusText').textContent = `Image loaded: ${file.name}`;
+                    document.getElementById('statusText').textContent = `Image loaded: ${file.name} (${img.width}×${img.height})`;
                     document.getElementById('downloadBtn').disabled = false;
                     document.getElementById('downloadPairBtn').disabled = false;
                 };
+                img.onerror = function() {
+                    alert('Error loading image. Please try a different file.');
+                };
                 img.src = e.target.result;
                 originalImage = img;
+            };
+            
+            reader.onerror = function() {
+                alert('Error reading file. Please try again.');
             };
             
             reader.readAsDataURL(file);
@@ -570,6 +608,7 @@
             canvas.width = img.width;
             canvas.height = img.height;
             ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
 
             // Create mask canvas (for pure mask generation)
             maskCanvas = document.createElement('canvas');
@@ -584,7 +623,8 @@
 
             container.appendChild(canvas);
 
-            // Initial view setup
+            // Initial view setup - show image by default
+            viewMode = 'image';
             updateCanvasView();
 
             // Add canvas event listeners
@@ -592,19 +632,51 @@
         }
 
         function updateCanvasView() {
-            if (!canvas || !originalImage) return;
+            if (!canvas || !originalImage || !maskCanvas) return;
 
             // Clear the display canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (viewMode === 'image') {
-                // Show original image
+                // Show original image first
+                ctx.globalAlpha = 1.0;
                 ctx.drawImage(originalImage, 0, 0);
                 
-                // Overlay annotations with some transparency
-                ctx.globalAlpha = 0.7;
-                ctx.drawImage(maskCanvas, 0, 0);
-                ctx.globalAlpha = 1.0;
+                // Get mask image data to overlay annotations
+                const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+                const maskData = maskImageData.data;
+                
+                // Create overlay canvas for annotations
+                const overlayCanvas = document.createElement('canvas');
+                overlayCanvas.width = canvas.width;
+                overlayCanvas.height = canvas.height;
+                const overlayCtx = overlayCanvas.getContext('2d');
+                
+                const overlayImageData = overlayCtx.createImageData(canvas.width, canvas.height);
+                const overlayData = overlayImageData.data;
+                
+                // Copy non-black pixels from mask to overlay with transparency
+                for (let i = 0; i < maskData.length; i += 4) {
+                    const r = maskData[i];
+                    const g = maskData[i + 1];
+                    const b = maskData[i + 2];
+                    
+                    // If not black (background), add to overlay with transparency
+                    if (r !== 0 || g !== 0 || b !== 0) {
+                        overlayData[i] = r;
+                        overlayData[i + 1] = g;
+                        overlayData[i + 2] = b;
+                        overlayData[i + 3] = 180; // Semi-transparent
+                    } else {
+                        overlayData[i + 3] = 0; // Fully transparent for black areas
+                    }
+                }
+                
+                overlayCtx.putImageData(overlayImageData, 0, 0);
+                
+                // Draw the overlay on main canvas
+                ctx.drawImage(overlayCanvas, 0, 0);
+                
             } else {
                 // Show only the mask
                 ctx.drawImage(maskCanvas, 0, 0);
@@ -725,21 +797,22 @@
         function downloadMask() {
             if (!maskCanvas) return;
 
+            // Ensure PNG format download
             const link = document.createElement('a');
             link.download = `${originalImageName}_mask.png`;
             link.href = maskCanvas.toDataURL('image/png');
             link.click();
 
-            document.getElementById('statusText').textContent = 'Mask downloaded successfully!';
+            document.getElementById('statusText').textContent = 'Mask downloaded successfully as PNG!';
         }
 
         function downloadPair() {
             if (!maskCanvas || !originalImage) return;
 
-            // Download mask first
+            // Download mask first (PNG format)
             downloadMask();
             
-            // Download original image
+            // Download original image as PNG (converted from any format)
             setTimeout(() => {
                 const originalCanvas = document.createElement('canvas');
                 const originalCtx = originalCanvas.getContext('2d');
@@ -748,11 +821,11 @@
                 originalCtx.drawImage(originalImage, 0, 0);
                 
                 const link = document.createElement('a');
-                link.download = `${originalImageName}_original.jpg`;
-                link.href = originalCanvas.toDataURL('image/jpeg', 0.95);
+                link.download = `${originalImageName}_original.png`;
+                link.href = originalCanvas.toDataURL('image/png'); // Force PNG format
                 link.click();
 
-                document.getElementById('statusText').textContent = 'Image pair downloaded successfully!';
+                document.getElementById('statusText').textContent = 'Image pair downloaded successfully as PNG files!';
             }, 500);
         }
 
