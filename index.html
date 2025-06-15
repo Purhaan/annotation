@@ -168,6 +168,43 @@
             display: none;
         }
 
+        .view-controls {
+            margin-bottom: 20px;
+        }
+
+        .view-controls h4 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .view-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .view-btn {
+            padding: 10px 15px;
+            border: 2px solid #4CAF50;
+            background: white;
+            color: #4CAF50;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .view-btn.active {
+            background: #4CAF50;
+            color: white;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .view-btn:hover {
+            transform: translateY(-1px);
+        }
+
         .action-buttons {
             display: flex;
             flex-direction: column;
@@ -387,6 +424,18 @@
                     <div class="brush-size-value" id="brushSizeValue">10px</div>
                 </div>
 
+                <div class="view-controls">
+                    <h4>👁️ View Mode</h4>
+                    <div class="view-buttons">
+                        <button class="view-btn active" id="imageViewBtn" onclick="toggleView('image')">
+                            🖼️ Image + Annotations
+                        </button>
+                        <button class="view-btn" id="maskViewBtn" onclick="toggleView('mask')">
+                            🎨 Mask Only
+                        </button>
+                    </div>
+                </div>
+
                 <div class="action-buttons">
                     <button class="action-btn clear-btn" onclick="clearCanvas()">
                         🗑️ Clear Annotations
@@ -448,12 +497,13 @@
     </div>
 
     <script>
-        let canvas, ctx, originalImage;
+        let canvas, ctx, originalImage, maskCanvas, maskCtx;
         let isDrawing = false;
         let currentColor = '#000000';
         let currentStructure = 'background';
         let brushSize = 10;
         let originalImageName = '';
+        let viewMode = 'image'; // 'image' or 'mask'
 
         // Structure color mapping (matches your AI system)
         const STRUCTURE_COLORS = {
@@ -514,28 +564,64 @@
             const container = document.getElementById('canvasContainer');
             container.innerHTML = '';
 
-            // Create canvas
+            // Create display canvas (what user sees)
             canvas = document.createElement('canvas');
             canvas.className = 'annotation-canvas';
             canvas.width = img.width;
             canvas.height = img.height;
-            
             ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false; // Prevent anti-aliasing for exact colors
 
-            // Draw original image as background reference (optional)
-            // ctx.globalAlpha = 0.7;
-            // ctx.drawImage(img, 0, 0);
-            // ctx.globalAlpha = 1.0;
+            // Create mask canvas (for pure mask generation)
+            maskCanvas = document.createElement('canvas');
+            maskCanvas.width = img.width;
+            maskCanvas.height = img.height;
+            maskCtx = maskCanvas.getContext('2d');
+            maskCtx.imageSmoothingEnabled = false;
 
-            // Fill with black background (default)
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Initialize mask with black background
+            maskCtx.fillStyle = '#000000';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
 
             container.appendChild(canvas);
 
+            // Initial view setup
+            updateCanvasView();
+
             // Add canvas event listeners
             setupCanvasListeners();
+        }
+
+        function updateCanvasView() {
+            if (!canvas || !originalImage) return;
+
+            // Clear the display canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (viewMode === 'image') {
+                // Show original image
+                ctx.drawImage(originalImage, 0, 0);
+                
+                // Overlay annotations with some transparency
+                ctx.globalAlpha = 0.7;
+                ctx.drawImage(maskCanvas, 0, 0);
+                ctx.globalAlpha = 1.0;
+            } else {
+                // Show only the mask
+                ctx.drawImage(maskCanvas, 0, 0);
+            }
+        }
+
+        function toggleView(mode) {
+            viewMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(mode === 'image' ? 'imageViewBtn' : 'maskViewBtn').classList.add('active');
+            
+            updateCanvasView();
+            
+            document.getElementById('statusText').textContent = 
+                `View mode: ${mode === 'image' ? 'Image + Annotations' : 'Mask Only'}`;
         }
 
         function setupCanvasListeners() {
@@ -566,11 +652,15 @@
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
 
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = currentColor;
-            ctx.beginPath();
-            ctx.arc(x, y, brushSize, 0, 2 * Math.PI);
-            ctx.fill();
+            // Draw on the mask canvas (pure colors)
+            maskCtx.globalCompositeOperation = 'source-over';
+            maskCtx.fillStyle = currentColor;
+            maskCtx.beginPath();
+            maskCtx.arc(x, y, brushSize, 0, 2 * Math.PI);
+            maskCtx.fill();
+
+            // Update the display
+            updateCanvasView();
         }
 
         function stopDrawing() {
@@ -622,30 +712,31 @@
         }
 
         function clearCanvas() {
-            if (!canvas) return;
+            if (!maskCanvas) return;
             
             if (confirm('Are you sure you want to clear all annotations?')) {
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                document.getElementById('statusText').textContent = 'Canvas cleared';
+                maskCtx.fillStyle = '#000000';
+                maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+                updateCanvasView();
+                document.getElementById('statusText').textContent = 'Annotations cleared';
             }
         }
 
         function downloadMask() {
-            if (!canvas) return;
+            if (!maskCanvas) return;
 
             const link = document.createElement('a');
             link.download = `${originalImageName}_mask.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = maskCanvas.toDataURL('image/png');
             link.click();
 
             document.getElementById('statusText').textContent = 'Mask downloaded successfully!';
         }
 
         function downloadPair() {
-            if (!canvas || !originalImage) return;
+            if (!maskCanvas || !originalImage) return;
 
-            // Create a zip-like download by triggering both downloads
+            // Download mask first
             downloadMask();
             
             // Download original image
@@ -694,6 +785,12 @@
             if (structureKeys[e.key]) {
                 const tool = document.querySelector(`[data-structure="${structureKeys[e.key]}"]`);
                 if (tool) selectStructureTool(tool);
+            }
+
+            // Toggle view with spacebar
+            if (e.key === ' ') {
+                e.preventDefault();
+                toggleView(viewMode === 'image' ? 'mask' : 'image');
             }
         });
     </script>
