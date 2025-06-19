@@ -515,8 +515,8 @@
     <script>
         let canvas, ctx, originalImage, maskCanvas, maskCtx;
         let isDrawing = false;
-        let currentColor = '#000000';
-        let currentStructure = 'background';
+        let currentColor = '#000000'; // Background tool (black)
+        let currentStructure = 'background'; // Background tool
         let brushSize = 10;
         let originalImageName = '';
         let viewMode = 'image'; // 'image' or 'mask'
@@ -617,8 +617,8 @@
             maskCtx = maskCanvas.getContext('2d');
             maskCtx.imageSmoothingEnabled = false;
 
-            // Initialize mask with black background
-            maskCtx.fillStyle = '#000000';
+            // Initialize mask with grey background
+            maskCtx.fillStyle = '#808080';
             maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
 
             container.appendChild(canvas);
@@ -655,20 +655,20 @@
                 const overlayImageData = overlayCtx.createImageData(canvas.width, canvas.height);
                 const overlayData = overlayImageData.data;
                 
-                // Copy non-black pixels from mask to overlay with transparency
+                // Copy non-grey pixels from mask to overlay with transparency
                 for (let i = 0; i < maskData.length; i += 4) {
                     const r = maskData[i];
                     const g = maskData[i + 1];
                     const b = maskData[i + 2];
                     
-                    // If not black (background), add to overlay with transparency
-                    if (r !== 0 || g !== 0 || b !== 0) {
+                    // If not grey background (128, 128, 128), add to overlay with transparency
+                    if (r !== 128 || g !== 128 || b !== 128) {
                         overlayData[i] = r;
                         overlayData[i + 1] = g;
                         overlayData[i + 2] = b;
                         overlayData[i + 3] = 180; // Semi-transparent
                     } else {
-                        overlayData[i + 3] = 0; // Fully transparent for black areas
+                        overlayData[i + 3] = 0; // Fully transparent for grey background areas
                     }
                 }
                 
@@ -787,7 +787,7 @@
             if (!maskCanvas) return;
             
             if (confirm('Are you sure you want to clear all annotations?')) {
-                maskCtx.fillStyle = '#000000';
+                maskCtx.fillStyle = '#808080';
                 maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
                 updateCanvasView();
                 document.getElementById('statusText').textContent = 'Annotations cleared';
