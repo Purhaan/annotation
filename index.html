@@ -455,6 +455,9 @@
                     <button class="action-btn download-btn" id="downloadPairBtn" onclick="downloadPair()" disabled>
                         📦 Download Pair
                     </button>
+                    <button class="action-btn" onclick="testMaskBackground()" style="background: #9C27B0; color: white;">
+                        🔍 Test Mask Background
+                    </button>
                 </div>
             </div>
 
@@ -531,6 +534,9 @@
             "entry_points": "#FF00FF",
             "root_tissue": "#808080"
         };
+        
+        // Default mask background color
+        const MASK_BACKGROUND_COLOR = '#808080';
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -617,9 +623,16 @@
             maskCtx = maskCanvas.getContext('2d');
             maskCtx.imageSmoothingEnabled = false;
 
+            console.log('Canvas created with dimensions:', maskCanvas.width, 'x', maskCanvas.height);
+
             // Initialize mask with grey background
-            maskCtx.fillStyle = '#808080';
+            maskCtx.fillStyle = MASK_BACKGROUND_COLOR;
             maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+            
+            // Debug: Verify the background was set correctly
+            const testPixel = maskCtx.getImageData(0, 0, 1, 1);
+            console.log('Background pixel after initialization:', testPixel.data);
+            console.log('Expected: [128, 128, 128, 255]');
 
             container.appendChild(canvas);
 
@@ -787,15 +800,68 @@
             if (!maskCanvas) return;
             
             if (confirm('Are you sure you want to clear all annotations?')) {
-                maskCtx.fillStyle = '#808080';
+                maskCtx.fillStyle = MASK_BACKGROUND_COLOR;
                 maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
                 updateCanvasView();
                 document.getElementById('statusText').textContent = 'Annotations cleared';
             }
         }
 
+        function testMaskBackground() {
+            if (!maskCanvas) {
+                alert('No mask canvas available. Please upload an image first.');
+                return;
+            }
+
+            // Sample multiple points to check background color
+            const testPoints = [
+                [0, 0],
+                [50, 50], 
+                [100, 100],
+                [maskCanvas.width - 1, maskCanvas.height - 1]
+            ];
+
+            console.log('=== MASK BACKGROUND TEST ===');
+            console.log('Expected background: RGB(128, 128, 128)');
+            
+            testPoints.forEach(([x, y]) => {
+                const pixel = maskCtx.getImageData(x, y, 1, 1);
+                const [r, g, b, a] = pixel.data;
+                console.log(`Pixel at (${x}, ${y}): RGB(${r}, ${g}, ${b}) Alpha: ${a}`);
+            });
+
+            // Create a test canvas to visually show the mask
+            const testCanvas = document.createElement('canvas');
+            testCanvas.width = 200;
+            testCanvas.height = 200;
+            testCanvas.style.border = '2px solid red';
+            testCanvas.style.position = 'fixed';
+            testCanvas.style.top = '100px';
+            testCanvas.style.left = '100px';
+            testCanvas.style.zIndex = '9999';
+            testCanvas.style.background = 'white';
+            
+            const testCtx = testCanvas.getContext('2d');
+            testCtx.drawImage(maskCanvas, 0, 0, 200, 200);
+            
+            // Add to page temporarily
+            document.body.appendChild(testCanvas);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                document.body.removeChild(testCanvas);
+            }, 5000);
+
+            alert('Check console for pixel values and look for the test canvas (5 seconds). Grey background should show as RGB(128, 128, 128).');
+        }
+
         function downloadMask() {
             if (!maskCanvas) return;
+
+            // Debug: Check if mask canvas has the correct background
+            const imageData = maskCtx.getImageData(0, 0, 5, 5); // Check first 5x5 pixels
+            console.log('First pixel RGB values:', imageData.data.slice(0, 4));
+            console.log('Should be: [128, 128, 128, 255] for grey background');
 
             // Ensure PNG format download
             const link = document.createElement('a');
@@ -803,7 +869,7 @@
             link.href = maskCanvas.toDataURL('image/png');
             link.click();
 
-            document.getElementById('statusText').textContent = 'Mask downloaded successfully as PNG!';
+            document.getElementById('statusText').textContent = 'Mask downloaded successfully as PNG! Check console for debug info.';
         }
 
         function downloadPair() {
