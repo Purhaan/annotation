@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔬 Mycorrhizal Structure Annotator</title>
+    <title>🔬 Binary Mycorrhizal Annotator</title>
     <style>
         * {
             margin: 0;
@@ -368,8 +368,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔬 Mycorrhizal Structure Annotator</h1>
-            <p>Create precise color-coded masks for AI training</p>
+            <h1>🔬 Binary Mycorrhizal Annotator</h1>
+            <p>Create binary masks for AI training - Black/White only</p>
         </div>
         
         <div class="main-content">
@@ -388,42 +388,22 @@
                     <h4>📋 Instructions</h4>
                     <ul>
                         <li>Upload a clear microscope image</li>
-                        <li>Select structure type from tools</li>
+                        <li>Select Background (black) or Mycorrhiza (white)</li>
                         <li>Draw directly on the image</li>
-                        <li>Use different colors for each structure</li>
-                        <li>Download mask for AI training</li>
+                        <li>Create binary masks for AI training</li>
+                        <li>Download mask as PNG</li>
                     </ul>
                 </div>
 
                 <div class="structure-tools">
-                    <h3>🎨 Structure Tools</h3>
+                    <h3>🎨 Binary Tools</h3>
                     <div class="color-tool active" data-color="#000000" data-structure="background">
                         <div class="color-preview" style="background: #000000;"></div>
                         <div class="structure-name">Background</div>
                     </div>
-                    <div class="color-tool" data-color="#FF0000" data-structure="arbuscules">
-                        <div class="color-preview" style="background: #FF0000;"></div>
-                        <div class="structure-name">Arbuscules</div>
-                    </div>
-                    <div class="color-tool" data-color="#00FF00" data-structure="vesicles">
-                        <div class="color-preview" style="background: #00FF00;"></div>
-                        <div class="structure-name">Vesicles</div>
-                    </div>
-                    <div class="color-tool" data-color="#0000FF" data-structure="hyphae">
-                        <div class="color-preview" style="background: #0000FF;"></div>
-                        <div class="structure-name">Hyphae</div>
-                    </div>
-                    <div class="color-tool" data-color="#FFFF00" data-structure="spores">
-                        <div class="color-preview" style="background: #FFFF00;"></div>
-                        <div class="structure-name">Spores</div>
-                    </div>
-                    <div class="color-tool" data-color="#FF00FF" data-structure="entry_points">
-                        <div class="color-preview" style="background: #FF00FF;"></div>
-                        <div class="structure-name">Entry Points</div>
-                    </div>
-                    <div class="color-tool" data-color="#808080" data-structure="root_tissue">
-                        <div class="color-preview" style="background: #808080;"></div>
-                        <div class="structure-name">Root Tissue</div>
+                    <div class="color-tool" data-color="#FFFFFF" data-structure="mycorrhiza">
+                        <div class="color-preview" style="background: #FFFFFF; border: 2px solid #ccc;"></div>
+                        <div class="structure-name">Mycorrhiza</div>
                     </div>
                 </div>
 
@@ -467,10 +447,10 @@
                         <h3>📤 Upload an Image to Start</h3>
                         <p>Supports JPG, PNG, and TIFF formats</p>
                         <p style="font-size: 0.9em; margin-top: 20px;">
-                            🎯 <strong>Tips:</strong><br>
-                            • Use high-resolution microscope images<br>
-                            • Ensure good contrast for better annotation<br>
-                            • Images will be converted to PNG for AI training
+                            🎯 <strong>Binary Mask Tips:</strong><br>
+                            • Black = Background<br>
+                            • White = All mycorrhizal structures<br>
+                            • Perfect for AI training datasets
                         </p>
                     </div>
                 </div>
@@ -484,34 +464,14 @@
     </div>
 
     <div class="legend">
-        <h4>🏷️ Color Legend</h4>
+        <h4>🏷️ Binary Legend</h4>
         <div class="legend-item">
             <div class="legend-color" style="background: #000000;"></div>
             <span>Background</span>
         </div>
         <div class="legend-item">
-            <div class="legend-color" style="background: #FF0000;"></div>
-            <span>Arbuscules</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #00FF00;"></div>
-            <span>Vesicles</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #0000FF;"></div>
-            <span>Hyphae</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FFFF00;"></div>
-            <span>Spores</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #FF00FF;"></div>
-            <span>Entry Points</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-color" style="background: #808080;"></div>
-            <span>Root Tissue</span>
+            <div class="legend-color" style="background: #FFFFFF; border: 2px solid #999;"></div>
+            <span>Mycorrhiza</span>
         </div>
     </div>
 
@@ -524,19 +484,14 @@
         let originalImageName = '';
         let viewMode = 'image'; // 'image' or 'mask'
 
-        // Structure color mapping (matches your AI system)
+        // Binary structure color mapping
         const STRUCTURE_COLORS = {
-            "background": "#000000",
-            "arbuscules": "#FF0000", 
-            "vesicles": "#00FF00",
-            "hyphae": "#0000FF",
-            "spores": "#FFFF00",
-            "entry_points": "#FF00FF",
-            "root_tissue": "#808080"
+            "background": "#000000",  // Black
+            "mycorrhiza": "#FFFFFF"   // White
         };
         
-        // Default mask background color
-        const MASK_BACKGROUND_COLOR = '#808080';
+        // Binary mask background color (black)
+        const MASK_BACKGROUND_COLOR = '#000000';
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -547,7 +502,7 @@
             document.getElementById('imageViewBtn').classList.add('active');
             
             // Debug logging
-            console.log('Mycorrhizal Annotator initialized');
+            console.log('Binary Mycorrhizal Annotator initialized');
         });
 
         function setupEventListeners() {
@@ -625,14 +580,14 @@
 
             console.log('Canvas created with dimensions:', maskCanvas.width, 'x', maskCanvas.height);
 
-            // Initialize mask with grey background
+            // Initialize mask with black background
             maskCtx.fillStyle = MASK_BACKGROUND_COLOR;
             maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
             
             // Debug: Verify the background was set correctly
             const testPixel = maskCtx.getImageData(0, 0, 1, 1);
             console.log('Background pixel after initialization:', testPixel.data);
-            console.log('Expected: [128, 128, 128, 255]');
+            console.log('Expected: [0, 0, 0, 255] for black background');
 
             container.appendChild(canvas);
 
@@ -668,20 +623,20 @@
                 const overlayImageData = overlayCtx.createImageData(canvas.width, canvas.height);
                 const overlayData = overlayImageData.data;
                 
-                // Copy non-grey pixels from mask to overlay with transparency
+                // Copy non-black pixels from mask to overlay with transparency
                 for (let i = 0; i < maskData.length; i += 4) {
                     const r = maskData[i];
                     const g = maskData[i + 1];
                     const b = maskData[i + 2];
                     
-                    // If not grey background (128, 128, 128), add to overlay with transparency
-                    if (r !== 128 || g !== 128 || b !== 128) {
+                    // If not black background (0, 0, 0), add to overlay with transparency
+                    if (r !== 0 || g !== 0 || b !== 0) {
                         overlayData[i] = r;
                         overlayData[i + 1] = g;
                         overlayData[i + 2] = b;
                         overlayData[i + 3] = 180; // Semi-transparent
                     } else {
-                        overlayData[i + 3] = 0; // Fully transparent for grey background areas
+                        overlayData[i + 3] = 0; // Fully transparent for black background areas
                     }
                 }
                 
@@ -706,7 +661,7 @@
             updateCanvasView();
             
             document.getElementById('statusText').textContent = 
-                `View mode: ${mode === 'image' ? 'Image + Annotations' : 'Mask Only'}`;
+                `View mode: ${mode === 'image' ? 'Image + Annotations' : 'Binary Mask Only'}`;
         }
 
         function setupCanvasListeners() {
@@ -788,7 +743,7 @@
             currentStructure = toolElement.dataset.structure;
 
             document.getElementById('statusText').textContent = 
-                `Selected: ${currentStructure.replace('_', ' ')} (${currentColor})`;
+                `Selected: ${currentStructure} (${currentColor === '#000000' ? 'Black' : 'White'})`;
         }
 
         function updateBrushSize() {
@@ -803,7 +758,7 @@
                 maskCtx.fillStyle = MASK_BACKGROUND_COLOR;
                 maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
                 updateCanvasView();
-                document.getElementById('statusText').textContent = 'Annotations cleared';
+                document.getElementById('statusText').textContent = 'Annotations cleared - reset to black background';
             }
         }
 
@@ -821,8 +776,8 @@
                 [maskCanvas.width - 1, maskCanvas.height - 1]
             ];
 
-            console.log('=== MASK BACKGROUND TEST ===');
-            console.log('Expected background: RGB(128, 128, 128)');
+            console.log('=== BINARY MASK BACKGROUND TEST ===');
+            console.log('Expected background: RGB(0, 0, 0) - Black');
             
             testPoints.forEach(([x, y]) => {
                 const pixel = maskCtx.getImageData(x, y, 1, 1);
@@ -852,7 +807,7 @@
                 document.body.removeChild(testCanvas);
             }, 5000);
 
-            alert('Check console for pixel values and look for the test canvas (5 seconds). Grey background should show as RGB(128, 128, 128).');
+            alert('Check console for pixel values and look for the test canvas (5 seconds). Black background should show as RGB(0, 0, 0).');
         }
 
         function downloadMask() {
@@ -861,15 +816,15 @@
             // Debug: Check if mask canvas has the correct background
             const imageData = maskCtx.getImageData(0, 0, 5, 5); // Check first 5x5 pixels
             console.log('First pixel RGB values:', imageData.data.slice(0, 4));
-            console.log('Should be: [128, 128, 128, 255] for grey background');
+            console.log('Should be: [0, 0, 0, 255] for black background');
 
             // Ensure PNG format download
             const link = document.createElement('a');
-            link.download = `${originalImageName}_mask.png`;
+            link.download = `${originalImageName}_binary_mask.png`;
             link.href = maskCanvas.toDataURL('image/png');
             link.click();
 
-            document.getElementById('statusText').textContent = 'Mask downloaded successfully as PNG! Check console for debug info.';
+            document.getElementById('statusText').textContent = 'Binary mask downloaded successfully as PNG! Check console for debug info.';
         }
 
         function downloadPair() {
@@ -891,7 +846,7 @@
                 link.href = originalCanvas.toDataURL('image/png'); // Force PNG format
                 link.click();
 
-                document.getElementById('statusText').textContent = 'Image pair downloaded successfully as PNG files!';
+                document.getElementById('statusText').textContent = 'Binary image pair downloaded successfully as PNG files!';
             }, 500);
         }
 
@@ -913,12 +868,7 @@
             // Number keys for quick structure selection
             const structureKeys = {
                 '1': 'background',
-                '2': 'arbuscules', 
-                '3': 'vesicles',
-                '4': 'hyphae',
-                '5': 'spores',
-                '6': 'entry_points',
-                '7': 'root_tissue'
+                '2': 'mycorrhiza'
             };
 
             if (structureKeys[e.key]) {
