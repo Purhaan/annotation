@@ -2,245 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🔬 Binary Mycorrhizal Annotator (1-bit PNG)</title>
-  <!--  --- same <style> as before, nothing changed ---  -->
+  <title>🔬 Binary Mask Annotator</title>
   <style>
-    /*  original CSS untouched  */
-    /*  (paste the exact <style> block you already have here)  */
+    body{margin:0;font-family:Segoe UI;background:#f2f2f2}
+    #wrapper{display:flex;height:100vh}
+    #sidebar{background:#fff;width:280px;padding:20px;box-shadow:2px 0 5px rgba(0,0,0,.1)}
+    #canvasArea{flex:1;display:flex;align-items:center;justify-content:center;background:#333}
+    canvas{border:1px solid #555;max-width:90%;max-height:90%;cursor:crosshair;background:#000}
+    button{width:100%;padding:12px;margin:8px 0;border:none;border-radius:4px;font-size:16px;cursor:pointer}
+    .black{background:#000;color:#fff}
+    .white{background:#fff;color:#000;border:1px solid #000}
+    .active{outline:3px solid #4caf50}
+    input[type=range]{width:100%}
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>🔬 Binary Mycorrhizal Annotator</h1>
-      <p>Create 1-bit PNG masks for AI training – Black/White only</p>
-    </div>
+<div id="wrapper">
+  <div id="sidebar">
+    <input type="file" id="uploader" accept="image/*" style="display:none">
+    <button onclick="document.getElementById('uploader').click()">📤 Upload Image</button>
 
-    <div class="main-content">
-      <!--  --- exact same sidebar structure ---  -->
-      <div class="sidebar">
-        <div class="upload-section">
-          <input type="file" id="imageInput" class="file-input"
-                 accept="image/jpeg,image/jpg,image/png,image/tiff,image/tif"/>
-          <button class="upload-btn" onclick="document.getElementById('imageInput').click()">
-            📤 Upload Microscope Image
-          </button>
-          <div style="font-size:0.8em;color:#666;margin-top:8px;text-align:center;">
-            Supports: JPG, PNG, TIFF • Max size: 10 MB
-          </div>
-        </div>
+    <button id="btnBlack" class="black active" onclick="setColor('#000000',this)">Black (Background)</button>
+    <button id="btnWhite" class="white"            onclick="setColor('#FFFFFF',this)">White (Mycorrhiza)</button>
 
-        <div class="structure-tools">
-          <h3>🎨 Binary Tools</h3>
-          <div class="color-tool active" data-color="#000000" data-structure="background">
-            <div class="color-preview" style="background:#000000;"></div>
-            <div class="structure-name">Background</div>
-          </div>
-          <div class="color-tool" data-color="#FFFFFF" data-structure="mycorrhiza">
-            <div class="color-preview" style="background:#FFFFFF;border:2px solid #ccc;"></div>
-            <div class="structure-name">Mycorrhiza</div>
-          </div>
-        </div>
+    <label>Brush Size</label>
+    <input type="range" id="brushSize" min="1" max="50" value="10">
 
-        <div class="brush-controls">
-          <h4>🖌️ Brush Size</h4>
-          <input type="range" id="brushSize" class="brush-size-slider" min="1" max="50" value="10">
-          <div class="brush-size-value" id="brushSizeValue">10 px</div>
-        </div>
-
-        <div class="view-controls">
-          <h4>👁️ View Mode</h4>
-          <div class="view-buttons">
-            <button class="view-btn active" id="imageViewBtn" onclick="toggleView('image')">
-              🖼️ Image + Annotations
-            </button>
-            <button class="view-btn" id="maskViewBtn" onclick="toggleView('mask')">
-              🎨 Mask Only
-            </button>
-            <button class="view-btn" id="bitViewBtn" onclick="toggleView('1bit')">
-              🧊 1-bit Preview
-            </button>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <button class="action-btn clear-btn" onclick="clearCanvas()">
-            🗑️ Clear Annotations
-          </button>
-          <button class="action-btn download-btn" id="downloadBtn" onclick="downloadMask()" disabled>
-            💾 Download 1-bit PNG
-          </button>
-        </div>
-      </div>
-
-      <div class="canvas-area">
-        <div class="canvas-container" id="canvasContainer">
-          <div style="text-align:center;padding:50px;color:#666;">
-            <h3>📤 Upload an Image to Start</h3>
-            <p>Supports JPG, PNG, and TIFF formats</p>
-            <p style="font-size:0.9em;margin-top:20px;">
-              🎯 <strong>Binary Mask Tips:</strong><br>
-              • Black = Background<br>
-              • White = All mycorrhizal structures<br>
-              • Automatically saved as 1-bit PNG
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="status-bar">
-      <div class="status-text" id="statusText">Ready to annotate</div>
-      <div class="coordinates" id="coordinates">Position: (0, 0)</div>
-    </div>
+    <button onclick="clearMask()">🗑️ Clear</button>
+    <button onclick="downloadMask()">💾 Save PNG</button>
   </div>
 
-  <script>
-    /* ---------- unchanged variables ---------- */
-    let canvas, ctx, originalImage, maskCanvas, maskCtx;
-    let isDrawing = false, currentColor = '#000000', brushSize = 10, viewMode = 'image';
-    let originalImageName = '';
+  <div id="canvasArea">
+    <canvas id="cvs"></canvas>
+  </div>
+</div>
 
-    /* ---------- canvas & events setup ---------- */
-    function setupCanvas(img) {
-      const container = document.getElementById('canvasContainer');
-      container.innerHTML = '';
+<script>
+const cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+let img=new Image(),color='#000000',brush=10,drawing=false;
 
-      // display canvas
-      canvas = document.createElement('canvas');
-      canvas.className = 'annotation-canvas';
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx = canvas.getContext('2d');
-      ctx.imageSmoothingEnabled = false;
+/* --- load image --- */
+document.getElementById('uploader').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const url=URL.createObjectURL(file);
+  img.onload=()=>{
+    cvs.width=img.width;cvs.height=img.height;
+    ctx.fillStyle='#000000';ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.drawImage(img,0,0);
+  };
+  img.src=url;
+});
 
-      // mask canvas (always 1-bit, no alpha)
-      maskCanvas = document.createElement('canvas');
-      maskCanvas.width = img.width;
-      maskCanvas.height = img.height;
-      maskCtx = maskCanvas.getContext('2d');
-      maskCtx.imageSmoothingEnabled = false;
+/* --- drawing --- */
+function setColor(c,btn){color=c;document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+document.getElementById('brushSize').addEventListener('input',e=>brush=+e.target.value);
+cvs.addEventListener('mousedown',e=>{drawing=true;draw(e)});
+cvs.addEventListener('mousemove',draw);
+cvs.addEventListener('mouseup',()=>drawing=false);
+function draw(e){if(!drawing)return;
+  const rect=cvs.getBoundingClientRect();
+  const x=(e.clientX-rect.left)*(cvs.width/rect.width);
+  const y=(e.clientY-rect.top)*(cvs.height/rect.height);
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle=color;
+  ctx.beginPath();ctx.arc(x,y,brush,0,2*Math.PI);ctx.fill();
+}
 
-      // pure black background
-      maskCtx.fillStyle = '#000000';
-      maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-
-      container.appendChild(canvas);
-      setupCanvasListeners();
-      updateCanvasView();
-    }
-
-    /* ---------- drawing helpers ---------- */
-    function startDrawing(e) { isDrawing = true; draw(e); }
-    function stopDrawing() { isDrawing = false; }
-
-    function draw(e) {
-      if (!isDrawing) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
-
-      maskCtx.globalCompositeOperation = 'source-over';
-      maskCtx.fillStyle = currentColor;
-      maskCtx.beginPath();
-      maskCtx.arc(x, y, brushSize, 0, 2 * Math.PI);
-      maskCtx.fill();
-
-      updateCanvasView();
-    }
-
-    /* ---------- view toggles ---------- */
-    function toggleView(mode) {
-      viewMode = mode;
-      ['imageViewBtn', 'maskViewBtn', 'bitViewBtn']
-        .forEach(id => document.getElementById(id).classList.remove('active'));
-      document.getElementById(mode === 'image' ? 'imageViewBtn' :
-                              mode === 'mask' ? 'maskViewBtn' : 'bitViewBtn')
-        .classList.add('active');
-      updateCanvasView();
-    }
-
-    function updateCanvasView() {
-      if (!ctx || !originalImage || !maskCanvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (viewMode === 'image') {
-        ctx.globalAlpha = 1.0;
-        ctx.drawImage(originalImage, 0, 0);
-        ctx.globalAlpha = 0.6;
-        ctx.drawImage(maskCanvas, 0, 0);
-      } else if (viewMode === 'mask') {
-        ctx.drawImage(maskCanvas, 0, 0);
-      } else { // 1-bit preview
-        // create 1-bit version
-        const imgData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-        const d = imgData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const bw = d[i] + d[i+1] + d[i+2] > 382 ? 255 : 0; // threshold 50 %
-          d[i] = d[i+1] = d[i+2] = bw;
-          d[i+3] = 255;
-        }
-        ctx.putImageData(imgData, 0, 0);
-      }
-    }
-
-    /* ---------- unchanged UI helpers ---------- */
-    function handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const valid = ['image/jpeg','image/jpg','image/png','image/tiff','image/tif'];
-      if (!valid.includes(file.type)) { alert('Unsupported file type'); return; }
-      originalImageName = file.name.split('.')[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => { setupCanvas(img); document.getElementById('downloadBtn').disabled=false; };
-        img.src = reader.result;
-        originalImage = img;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function clearCanvas() {
-      if (!maskCanvas) return;
-      if (confirm('Clear all annotations?')) {
-        maskCtx.fillStyle = '#000000';
-        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-        updateCanvasView();
-      }
-    }
-
-    /* ---------- download 1-bit PNG ---------- */
-    function downloadMask() {
-      if (!maskCanvas) return;
-      // force PNG, 1-bit palette
-      const link = document.createElement('a');
-      link.download = originalImageName + '_binary_mask.png';
-      link.href = maskCanvas.toDataURL('image/png');
-      link.click();
-    }
-
-    /* ---------- listeners ---------- */
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('imageInput').addEventListener('change', handleImageUpload);
-      document.getElementById('brushSize').addEventListener('input', e => {
-        brushSize = +e.target.value;
-        document.getElementById('brushSizeValue').textContent = brushSize + ' px';
-      });
-      document.querySelectorAll('.color-tool').forEach(tool =>
-        tool.addEventListener('click', () => {
-          document.querySelectorAll('.color-tool').forEach(t => t.classList.remove('active'));
-          tool.classList.add('active');
-          currentColor = tool.dataset.color;
-        }));
-    });
-
-    /* ---------- touch support ---------- */
-    function handleTouch(e) { e.preventDefault(); const t = e.touches[0]; canvas.dispatchEvent(new MouseEvent(e.type==='touchstart'?'mousedown':e.type==='touchmove'?'mousemove':'mouseup',{clientX:t.clientX,clientY:t.clientY})); }
-    function setupCanvasListeners() { ['mousedown','mousemove','mouseup','mouseout'].forEach(ev=>canvas.addEventListener(ev, ev==='mousedown'?startDrawing:ev==='mousemove'?draw:stopDrawing)); ['touchstart','touchmove','touchend'].forEach(ev=>canvas.addEventListener(ev, handleTouch)); }
-  </script>
+/* --- clear / download --- */
+function clearMask(){ctx.fillStyle='#000000';ctx.fillRect(0,0,cvs.width,cvs.height)}
+function downloadMask(){
+  const link=document.createElement('a');
+  link.download='binary_mask.png';
+  link.href=cvs.toDataURL('image/png');
+  link.click();
+}
+</script>
 </body>
 </html>
