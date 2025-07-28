@@ -8,7 +8,9 @@
     #wrapper{display:flex;height:100vh}
     #sidebar{background:#fff;width:280px;padding:20px;box-shadow:2px 0 5px rgba(0,0,0,.1)}
     #canvasArea{flex:1;display:flex;align-items:center;justify-content:center;background:#333}
-    canvas{border:1px solid #555;max-width:90%;max-height:90%;cursor:crosshair;background:#000}
+    canvas{border:1px solid #555;cursor:crosshair;background:#000}
+    /* ⬇️  makes the canvas fill the preview area */
+    #canvasArea canvas{width:100vw !important;height:100vh !important;object-fit:contain}
     button{width:100%;padding:12px;margin:8px 0;border:none;border-radius:4px;font-size:16px;cursor:pointer}
     .black{background:#000;color:#fff}
     .white{background:#fff;color:#000;border:1px solid #000}
@@ -21,62 +23,30 @@
   <div id="sidebar">
     <input type="file" id="uploader" accept="image/*" style="display:none">
     <button onclick="document.getElementById('uploader').click()">📤 Upload Image</button>
-
-    <button id="btnBlack" class="black active" onclick="setColor('#000000',this)">Black (Background)</button>
-    <button id="btnWhite" class="white"            onclick="setColor('#FFFFFF',this)">White (Mycorrhiza)</button>
-
-    <label>Brush Size</label>
-    <input type="range" id="brushSize" min="1" max="50" value="10">
-
+    <button id="btnBlack" class="black active" onclick="setColor('#000000',this)">Black</button>
+    <button id="btnWhite" class="white" onclick="setColor('#FFFFFF',this)">White</button>
+    <label>Brush Size <input type="range" id="brushSize" min="1" max="50" value="10"></label>
     <button onclick="clearMask()">🗑️ Clear</button>
     <button onclick="downloadMask()">💾 Save PNG</button>
   </div>
-
-  <div id="canvasArea">
-    <canvas id="cvs"></canvas>
-  </div>
+  <div id="canvasArea"><canvas id="cvs"></canvas></div>
 </div>
-
 <script>
-const cvs=document.getElementById('cvs'),ctx=cvs.getContext('2d');
-ctx.imageSmoothingEnabled=false;
-let img=new Image(),color='#000000',brush=10,drawing=false;
-
-/* --- load image --- */
+const c=document.getElementById('cvs'),x=c.getContext('2d');x.imageSmoothingEnabled=false;
+let img=new Image(),color='#000000',brush=10,d=false;
 document.getElementById('uploader').addEventListener('change',e=>{
-  const file=e.target.files[0];if(!file)return;
-  const url=URL.createObjectURL(file);
-  img.onload=()=>{
-    cvs.width=img.width;cvs.height=img.height;
-    ctx.fillStyle='#000000';ctx.fillRect(0,0,cvs.width,cvs.height);
-    ctx.drawImage(img,0,0);
-  };
-  img.src=url;
+  const f=e.target.files[0];if(!f)return;
+  img.onload=()=>{c.width=img.width;c.height=img.height;x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0)};
+  img.src=URL.createObjectURL(f);
 });
-
-/* --- drawing --- */
-function setColor(c,btn){color=c;document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+function setColor(c,b){color=c;[...document.querySelectorAll('#sidebar button')].forEach(b=>b.classList.remove('active'));b.classList.add('active')}
 document.getElementById('brushSize').addEventListener('input',e=>brush=+e.target.value);
-cvs.addEventListener('mousedown',e=>{drawing=true;draw(e)});
-cvs.addEventListener('mousemove',draw);
-cvs.addEventListener('mouseup',()=>drawing=false);
-function draw(e){if(!drawing)return;
-  const rect=cvs.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*(cvs.width/rect.width);
-  const y=(e.clientY-rect.top)*(cvs.height/rect.height);
-  ctx.globalCompositeOperation='source-over';
-  ctx.fillStyle=color;
-  ctx.beginPath();ctx.arc(x,y,brush,0,2*Math.PI);ctx.fill();
-}
-
-/* --- clear / download --- */
-function clearMask(){ctx.fillStyle='#000000';ctx.fillRect(0,0,cvs.width,cvs.height)}
-function downloadMask(){
-  const link=document.createElement('a');
-  link.download='binary_mask.png';
-  link.href=cvs.toDataURL('image/png');
-  link.click();
-}
+c.addEventListener('mousedown',e=>{d=true;draw(e)});
+c.addEventListener('mousemove',draw);
+c.addEventListener('mouseup',()=>d=false);
+function draw(e){if(!d)return;const r=c.getBoundingClientRect(),X=(e.clientX-r.left)*(c.width/r.width),Y=(e.clientY-r.top)*(c.height/r.height);x.globalCompositeOperation='source-over';x.fillStyle=color;x.beginPath();x.arc(X,Y,brush,0,2*Math.PI);x.fill()}
+function clearMask(){x.fillStyle='#000';x.fillRect(0,0,c.width,c.height)}
+function downloadMask(){const a=document.createElement('a');a.download='binary_mask.png';a.href=c.toDataURL('image/png');a.click()}
 </script>
 </body>
 </html>
